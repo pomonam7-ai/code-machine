@@ -12,10 +12,12 @@
 python -m autocut
 # CLI
 python -m autocut 영상.mp4 [-o out.mp4] [--no-illu] [--no-mosaic] [--layout auto|left|right|full] [--keyword 이름] [--fresh] [-v]
+# 일괄 처리 (폴더/여러 파일). 여러 개일 때 이미 편집된 영상은 건너뜀
+python -m autocut 폴더 [-r] [--out-dir 결과폴더] [--redo] [--list]
 # 음성인식 없이 테스트 (대본 JSON 직접 주입)
 python -m autocut test.mp4 --transcript transcript.json --fresh
 ```
-Windows 사용자는 `install.bat` → `run.bat`을 씁니다. GPU 선택 설치는 `install_gpu.bat`입니다.
+Windows 사용자는 `install.bat` → `run.bat`을 씁니다. 폴더 일괄 처리는 `batch.bat`(폴더를 끌어다 놓기)입니다. GPU 선택 설치는 `install_gpu.bat`입니다.
 
 ## 구조 (`autocut/`)
 | 파일 | 역할 |
@@ -28,6 +30,7 @@ Windows 사용자는 `install.bat` → `run.bat`을 씁니다. GPU 선택 설치
 | `illustrate.py` | PIL 절차적 일러스트 엔진(`Pen`, `ICONS` 33종, `render_card`). 선택적으로 `SDEngine`(diffusers)을 씁니다. |
 | `pii.py` | OCR(EasyOCR→Tesseract 폴백), 한국형 개인정보 정규식, 같은 줄 상자 묶기, 모자이크 이벤트 병합 |
 | `pipeline.py` | 전체 오케스트레이션, 오버레이 애니메이션, 작업 폴더 캐시, SRT 저장 |
+| `batch.py` | 일괄 처리. `collect_inputs`(폴더 펼치기, `_편집본`/작업 폴더 제외), `is_done`(건너뛰기 판정), `run_batch`(영상별 오류 격리, 중지, CSV 요약). CLI와 GUI 모두 이걸 거칩니다. |
 | `gui.py` | tkinter GUI. 작업 스레드와 큐로 로그/진행률을 전달합니다. |
 
 ## 꼭 지켜야 할 불변 조건
@@ -37,6 +40,11 @@ Windows 사용자는 `install.bat` → `run.bat`을 씁니다. GPU 선택 설치
 - **"이해를 해치지 않는 선"**: 컷은 보수적으로 합니다. 문장 끝 쉼(`sentence_pause`)과 호흡(`keep_pause`)을 남기고, 애매한 필러(`soft_fillers`)는 길게 끌 때만 자릅니다.
 - **일러스트 글자 최소화**: 라벨은 키워드 1개, `max_label_chars`(기본 7) 이하입니다.
 - **Windows 호환**: 서브프로세스에 `creationflags=_NOWIN`, 경로에 한글 허용, `.bat` 파일은 UTF-8 + CRLF + `chcp 65001`. `.bat`의 `( )` 블록 안 echo에서 괄호는 `^(` `^)`로 이스케이프합니다.
+
+## 일괄 처리 규칙
+- 렌더링은 `<결과>.part.mp4`에 쓰고 끝나면 이름을 바꿉니다. 실패/중지 시 임시 파일은 지웁니다. 중간에 멈춘 파일을 완성본으로 착각해 건너뛰지 않기 위한 것이니 유지하세요.
+- 건너뛰기는 **영상이 여러 개일 때만** 기본으로 켭니다. 1개를 지정하면 항상 다시 만듭니다(JSON 수정 후 재렌더링 흐름 보호).
+- `is_done`은 결과가 원본보다 새롭고, 작업 폴더의 `transcript.json`/`illustrations.json`/`pii.json`보다도 새로울 때만 참입니다.
 
 ## 작업 폴더 캐시
 `<영상>_autocut_work/`에 `transcript.json`, `cuts.json`, `illustrations.json`, `pii.json`, `cards/`, `settings.json`이 저장됩니다. 재실행하면 재사용합니다(`keep_hash` 일치 시). `--fresh`를 주면 무시합니다. 사용자가 JSON을 손으로 고쳐 재렌더링하는 흐름을 깨지 마세요.

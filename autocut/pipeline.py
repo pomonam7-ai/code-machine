@@ -151,6 +151,7 @@ def run(input_path, output_path=None, cfg=None, log=None, reuse=True, transcript
     output_path = output_path or base + "_편집본.mp4"
     work = base + "_autocut_work"
     os.makedirs(work, exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     cfg.to_json(os.path.join(work, "settings.json"))
 
     info = media.probe(input_path)
@@ -261,13 +262,16 @@ def run(input_path, output_path=None, cfg=None, log=None, reuse=True, transcript
     build_audio_wav(audio, 48000, keep, wav_out, cfg.crossfade_ms)
     del audio
 
+    # 렌더링 중에는 임시 파일에 쓰고, 끝나면 이름을 바꿈 (중간에 멈춘 파일을 완성본으로 착각하지 않도록)
+    part_path = os.path.splitext(output_path)[0] + ".part.mp4"
     reader = media.FrameReader(input_path, W, H, fps)
-    writer = media.FrameWriter(output_path, W, H, fps, wav_out, cfg.video_codec, cfg.crf, cfg.preset)
+    writer = media.FrameWriter(part_path, W, H, fps, wav_out, cfg.video_codec, cfg.crf, cfg.preset)
     faces = FaceSide()
     keep_frames = [(int(round(s * fps)), int(round(e * fps))) for s, e in keep]
     total_out = sum(e - s for s, e in keep_frames)
     src_idx = out_idx = k = 0
     last_frame = None
+    ok = False
     try:
         while k < len(keep_frames):
             frame = reader.read()
@@ -295,9 +299,22 @@ def run(input_path, output_path=None, cfg=None, log=None, reuse=True, transcript
         # 디코더가 마지막 몇 프레임을 덜 준 경우 오디오 길이에 맞춰 채움
         while last_frame is not None and out_idx < total_out:
             writer.write(last_frame); out_idx += 1
+        ok = True
     finally:
         reader.close()
-        writer.close()
+        try:
+            writer.close()
+        except Exception:
+            ok = False
+            raise
+        finally:
+            if ok:
+                os.replace(part_path, output_path)
+            elif os.path.exists(part_path):
+                try:
+                    os.remove(part_path)
+                except OSError:
+                    pass
     log.progress("완료", 1.0)
 
     if cfg.write_srt:

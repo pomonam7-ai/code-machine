@@ -39,5 +39,5 @@
 autocut/            파이썬 패키지 (python -m autocut)
 assets/fonts/       손글씨 폰트 (install.bat이 Gaegu-Bold 다운로드, 커밋 안 함)
 assets/illustration_styles.png  일러스트 33종 미리보기
-install.bat / install_gpu.bat / run.bat
+install.bat / install_gpu.bat / run.bat / batch.bat (폴더 일괄 처리)
 ```
