@@ -39,5 +39,7 @@
 autocut/            파이썬 패키지 (python -m autocut)
 assets/fonts/       손글씨 폰트 (install.bat이 Gaegu-Bold 다운로드, 커밋 안 함)
 assets/illustration_styles.png  일러스트 33종 미리보기
+autocut/webui/      웹앱 화면 (run.bat → 브라우저)
+assets/logos/       사용자 로고 (파일 이름 = 키워드, 쉼표로 별칭)
 install.bat / install_gpu.bat / run.bat / batch.bat (폴더 일괄 처리)
 ```

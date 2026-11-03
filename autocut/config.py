@@ -40,6 +40,9 @@ class Config:
     illu_min_dur: float = 2.6
     illu_max_dur: float = 6.0
     illu_layout: str = "auto"             # auto(얼굴 반대편) | left | right | full
+    illu_style: str = "sticker"           # sticker(투명 배경 + 흰 테두리) | card(종이 카드)
+    use_logos: bool = True                # assets/logos의 로고 이름이 대본에 나오면 로고를 띄움
+    logo_dir: str = ""                    # 비우면 assets/logos
     illu_scale: float = 0.42              # 화면 폭 대비 카드 크기
     max_label_chars: int = 7              # 글자는 최소한으로
     font_path: str = ""                   # 비우면 assets/fonts → 맑은 고딕 순으로 찾음

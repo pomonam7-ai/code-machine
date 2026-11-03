@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오토컷 스튜디오</title>
+<style>
+:root{
+  --bg:#f6f5f2; --panel:#ffffff; --ink:#26242b; --sub:#6b6872; --line:#e4e1da; --soft:#f0eee9;
+  --accent:#ff7a59; --accent-ink:#fff; --ok:#2f9e6a; --warn:#d9822b; --bad:#d64545; --sel:#fff1ec;
+  --chk1:#e9e7e2; --chk2:#ffffff; --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#18171c; --panel:#222127; --ink:#ecebef; --sub:#a29fab; --line:#34323b; --soft:#2b2a31;
+  --accent:#ff8a6b; --accent-ink:#1a1a1a; --sel:#3a2a26; --chk1:#2e2d34; --chk2:#3a3941; --shadow:none;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif}
+button,input,select{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:5;display:flex;gap:16px;align-items:center;padding:10px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{font-size:18px;margin:0;white-space:nowrap}
+header h1 span{color:var(--accent)}
+nav{display:flex;gap:4px;flex:1;overflow-x:auto}
+nav button{border:0;background:none;padding:8px 14px;border-radius:10px;cursor:pointer;color:var(--sub);white-space:nowrap}
+nav button.on{background:var(--sel);color:var(--accent);font-weight:700}
+main{max-width:1180px;margin:0 auto;padding:20px}
+.tab{display:none}.tab.on{display:block}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.grid>*{min-width:0}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:16px}
+.card h2{font-size:16px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.card h2 .n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:13px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel);padding:8px 14px;border-radius:10px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed;border-color:var(--line)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn.big{padding:12px 22px;font-size:16px}
+.btn.sm{padding:4px 10px;font-size:13px;border-radius:8px}
+.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+.tog{border:1px solid var(--line);background:var(--soft);padding:8px 12px;border-radius:999px;cursor:pointer;color:var(--sub)}
+.tog.on{background:var(--sel);border-color:var(--accent);color:var(--accent);font-weight:700}
+.tog.on::before{content:"✓ "}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--panel);padding:6px 12px;cursor:pointer;color:var(--sub)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.field{margin:12px 0}
+.field>label{display:block;font-size:13px;color:var(--sub);margin-bottom:6px}
+input[type=text],input[type=number],select{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 10px}
+input[type=range]{width:220px;accent-color:var(--accent)}
+.muted{color:var(--sub);font-size:13px}
+.list{border:1px solid var(--line);border-radius:10px;max-height:260px;overflow:auto}
+.list .it{display:flex;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line)}
+.list .it:last-child{border-bottom:0}
+.list .it .grow{flex:1;min-width:0}
+.list .it .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list .it .path{font-size:12px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty{padding:22px;text-align:center;color:var(--sub)}
+.badge{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--sub);white-space:nowrap}
+.badge.ok{background:rgba(47,158,106,.14);color:var(--ok)}
+.badge.bad{background:rgba(214,69,69,.14);color:var(--bad)}
+.badge.warn{background:rgba(217,130,43,.15);color:var(--warn)}
+.bar{height:10px;background:var(--soft);border-radius:999px;overflow:hidden;margin:10px 0}
+.bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+pre.log{background:var(--soft);border-radius:10px;padding:10px;max-height:260px;overflow:auto;font:12px/1.5 Consolas,"D2Coding",monospace;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.tablewrap{overflow-x:auto}
+@media (max-width:640px){
+  header{flex-wrap:wrap;padding:8px 16px;gap:8px}
+  header h1{flex:1}
+  nav{order:3;flex-basis:100%}
+  main{padding:12px 16px}
+  .card{padding:14px}
+  .item{grid-template-columns:minmax(0,1fr)}
+  .item img{width:100%}
+  input[type=range]{width:100%}
+}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
+th{color:var(--sub);font-weight:600;font-size:13px}
+.checker{background-color:var(--chk2);background-image:linear-gradient(45deg,var(--chk1) 25%,transparent 25%),linear-gradient(-45deg,var(--chk1) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,var(--chk1) 75%),linear-gradient(-45deg,transparent 75%,var(--chk1) 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tile{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);cursor:pointer;text-align:center}
+.tile img{width:100%;aspect-ratio:4/3;object-fit:contain;display:block}
+.tile .cap{padding:6px;font-size:13px}
+.tile .cap small{display:block;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile.on{outline:3px solid var(--accent)}
+.editor{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;align-items:start}
+.editor>*{min-width:0}
+@media (max-width:1000px){.editor{grid-template-columns:minmax(0,1fr)}}
+video{width:100%;border-radius:10px;background:#000;display:block}
+.item{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--panel)}
+.item.cur{border-color:var(--accent);box-shadow:0 0 0 2px var(--sel)}
+.item>*{min-width:0}
+.item select,.item input[type=text]{max-width:100%}
+.item img{width:150px;aspect-ratio:4/3;object-fit:contain;border-radius:8px}
+.item .times input{width:78px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:var(--soft);font-size:13px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+.modal.on{display:flex}
+.modal .box{background:var(--panel);border-radius:16px;width:min(860px,100%);max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.modal .head{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.modal .head h3{margin:0;font-size:16px;flex:1}
+.modal .body{padding:12px 16px;overflow:auto}
+.modal .foot{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.crumb{font-size:13px;color:var(--sub);word-break:break-all}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30;max-width:90vw}
+#toast.on{opacity:1}
+.hint{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--sub);margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+  <h1>오토컷 <span>스튜디오</span></h1>
+  <nav id="tabs">
+    <button data-tab="run" class="on">🎬 편집하기</button>
+    <button data-tab="edit">✏️ 일러스트 편집</button>
+    <button data-tab="lib">🖼️ 아이콘·로고</button>
+  </nav>
+  <button class="btn sm danger" id="quit" title="프로그램 끄기">⏻ 종료</button>
+</header>
+
+<main>
+<!-- ============================ 편집하기 -->
+<section class="tab on" id="tab-run">
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2><span class="n">1</span>영상 고르기</h2>
+        <div class="row">
+          <button class="btn primary" id="addBtn">📂 영상·폴더 추가</button>
+          <button class="btn" id="clearBtn">비우기</button>
+          <button class="tog" data-key="recursive" title="폴더를 추가했을 때 그 안의 하위 폴더 영상까지 포함">하위 폴더 포함</button>
+        </div>
+        <div class="field">
+          <div class="list" id="selList"><div class="empty">편집할 영상이나 폴더를 추가하세요</div></div>
+          <div class="muted" id="selCount" style="margin-top:6px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="n">3</span>실행</h2>
+        <div class="row">
+          <button class="btn primary big" id="startBtn">▶ 편집 시작</button>
+          <button class="btn big" id="stopBtn" disabled>■ 중지</button>
+        </div>
+        <div class="bar"><i id="pbar"></i></div>
+        <div class="row" style="justify-content:space-between">
+          <b id="stage">대기 중</b><span class="muted" id="fileInfo"></span>
+        </div>
+        <details style="margin-top:10px" id="logBox"><summary class="muted" style="cursor:pointer">진행 기록 보기</summary>
+          <pre class="log" id="log"></pre>
+        </details>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">2</span>편집 옵션</h2>
+      <div class="field"><label>무엇을 할까요?</label>
+        <div class="row">
+          <button class="tog" data-opt="remove_silence">무음 구간 제거</button>
+          <button class="tog" data-opt="remove_fillers">필러워드 제거 (어, 음…)</button>
+          <button class="tog" data-opt="add_illustrations">설명 일러스트</button>
+          <button class="tog" data-opt="use_logos">로고 자동 표시</button>
+          <button class="tog" data-opt="mosaic_pii">개인정보 모자이크</button>
+          <button class="tog" data-opt="write_srt">자막(.srt) 저장</button>
+        </div>
+      </div>
+      <div class="field"><label>일러스트 모양</label>
+        <div class="seg" data-opt="illu_style">
+          <button data-v="sticker">투명 배경 스티커</button><button data-v="card">종이 카드</button>
+        </div>
+      </div>
+      <div class="field"><label>일러스트 위치</label>
+        <div class="seg" data-opt="illu_layout">
+          <button data-v="auto">자동 (얼굴 반대쪽)</button><button data-v="left">왼쪽</button><button data-v="right">오른쪽</button><button data-v="full">화면 가운데</button>
+        </div>
+      </div>
+      <div class="field"><label>음성 인식 모델 (클수록 정확하지만 느림)</label>
+        <div class="seg" data-opt="whisper_model">
+          <button data-v="auto">자동</button><button data-v="small">small</button><button data-v="medium">medium</button><button data-v="large-v3-turbo">large-v3-turbo</button><button data-v="large-v3">large-v3</button>
+        </div>
+      </div>
+      <div class="field"><label>컷 강도: <b id="minsilV"></b>초 넘게 쉬면 자름 <span class="muted">(값이 클수록 덜 자름)</span></label>
+        <input type="range" min="0.3" max="2" step="0.05" data-opt="min_silence" id="minsil">
+      </div>
+      <div class="field"><label>일러스트 최소 간격: <b id="gapV"></b>초</label>
+        <input type="range" min="5" max="60" step="1" data-opt="illu_min_gap" id="gap">
+      </div>
+      <div class="field"><label>추가로 가릴 단어 (쉼표로 구분, 예: 내 이름, 회사명)</label>
+        <input type="text" data-opt="custom_keywords" id="kw" style="width:100%" placeholder="홍길동, 오토컷주식회사">
+      </div>
+      <div class="field"><label>결과 저장 위치</label>
+        <div class="row">
+          <span class="badge" id="outDirLabel">원본 영상 옆</span>
+          <button class="btn sm" id="outDirBtn">폴더 고르기…</button>
+          <button class="btn sm" id="outDirReset">원본 옆으로</button>
+        </div>
+      </div>
+      <div class="field"><label>다시 실행할 때</label>
+        <div class="row">
+          <button class="tog" data-key="skip_done" title="결과 파일이 이미 있는 영상은 건너뜀 (영상이 여러 개일 때)">이미 편집된 영상 건너뛰기</button>
+          <button class="tog" data-key="fresh" title="이전 대본·분석 결과를 쓰지 않고 처음부터">처음부터 다시</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <h2>✅ 결과</h2>
+    <div class="tablewrap"><table><thead><tr><th>영상</th><th>상태</th><th>줄어든 시간</th><th>일러스트</th><th>모자이크</th><th></th></tr></thead>
+      <tbody id="resultBody"></tbody></table></div>
+  </div>
+</section>
+
+<!-- ============================ 일러스트 편집 -->
+<section class="tab" id="tab-edit">
+  <div class="card">
+    <div class="row">
+      <b>편집할 영상</b>
+      <select id="projSel" style="min-width:260px;max-width:100%"></select>
+      <button class="btn sm" id="projPick">다른 영상 고르기…</button>
+      <span class="muted" id="projInfo"></span>
+    </div>
+  </div>
+  <div id="editorEmpty" class="card empty">먼저 '편집하기'에서 영상을 한 번 편집한 뒤, 여기서 일러스트를 고칠 수 있어요.</div>
+  <div class="editor" id="editor" style="display:none">
+    <div>
+      <div class="card">
+        <video id="player" controls preload="metadata"></video>
+        <div class="row" style="margin-top:10px;justify-content:space-between">
+          <span class="muted">현재 위치 <b id="curT">0.0</b>초 · 편집본 기준</span>
+          <div class="row">
+            <button class="btn sm" id="addHere">＋ 지금 위치에 추가</button>
+            <select id="sentSel" style="max-width:260px"><option value="">문장 골라서 추가…</option></select>
+          </div>
+        </div>
+        <div class="hint">시간은 <b>편집본</b> 기준이에요. 항목의 ▶ 버튼으로 그 장면을 확인하고, 고친 뒤 <b>저장하고 다시 만들기</b>를 누르면 영상에 반영돼요. 대본 인식과 개인정보 분석은 다시 하지 않아서 빨라요.</div>
+      </div>
+      <div class="card">
+        <div class="row">
+          <button class="btn" id="saveBtn">💾 저장</button>
+          <button class="btn primary" id="rerenderBtn">🎬 저장하고 다시 만들기</button>
+          <span class="muted" id="saveInfo"></span>
+        </div>
+        <div class="bar" id="rrBarWrap" style="display:none"><i id="rrBar"></i></div>
+        <div class="muted" id="rrStage"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>일러스트 <span class="badge" id="itemCount">0</span>
+        <span style="flex:1"></span>
+        <span class="seg" id="editStyle"><button data-v="sticker" class="on">스티커</button><button data-v="card">카드</button></span>
+      </h2>
+      <div id="items"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 아이콘·로고 -->
+<section class="tab" id="tab-lib">
+  <div class="card">
+    <h2>로고 <span class="badge" id="logoCount">0</span></h2>
+    <div class="row">
+      <label class="btn primary" style="cursor:pointer">＋ 로고 올리기<input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp" multiple hidden></label>
+      <span class="muted">PNG·JPG·WEBP. 흰색 같은 단색 배경은 자동으로 투명하게 바뀌어요.</span>
+    </div>
+    <div class="hint">
+      로고 이름이 대본에 나오면 그 장면에 로고를 자동으로 띄워요. 이름에 쉼표를 넣으면 별칭이 돼요.
+      예: <b>유튜브,youtube</b> → '유튜브'나 'YouTube'라고 말할 때 표시.
+      로고는 <span id="logoDir"></span> 폴더에 저장돼요. 다른 회사 로고는 사용 권한을 확인하고 쓰세요.
+    </div>
+    <div class="gallery" id="logoGrid" style="margin-top:12px"></div>
+  </div>
+  <div class="card">
+    <h2>설명 아이콘 <span class="badge" id="iconCount">0</span>
+      <span style="flex:1"></span>
+      <span class="seg" id="libStyle"><button data-v="sticker" class="on">투명 스티커</button><button data-v="card">종이 카드</button></span>
+    </h2>
+    <p class="muted" style="margin-top:0">체크무늬는 투명한 부분이에요. 아래 키워드가 대본에 나오면 그 아이콘을 골라 넣어요. 그림에 마우스를 올리면 키워드가 보여요.</p>
+    <div class="gallery" id="iconGrid"></div>
+  </div>
+</section>
+</main>
+
+<!-- 폴더/파일 고르기 -->
+<div class="modal" id="browser"><div class="box">
+  <div class="head"><h3 id="brTitle">영상·폴더 추가</h3><button class="btn sm" data-close>닫기</button></div>
+  <div class="body">
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn sm" id="brUp">⬆ 위로</button>
+      <input type="text" id="brPath" style="flex:1;min-width:200px" placeholder="폴더 경로를 붙여 넣고 Enter (예: D:\강의영상)">
+      <button class="btn sm" id="brGo">이동</button>
+    </div>
+    <div class="row" id="brRoots" style="margin-bottom:8px"></div>
+    <div class="list" id="brList" style="max-height:52vh"></div>
+  </div>
+  <div class="foot">
+    <span class="muted" id="brNote" style="flex:1;align-self:center"></span>
+    <button class="btn" id="brAddAll">이 폴더의 영상 모두 추가</button>
+    <button class="btn primary" id="brPickDir" style="display:none">이 폴더 선택</button>
+  </div>
+</div></div>
+
+<!-- 아이콘 고르기 -->
+<div class="modal" id="picker"><div class="box">
+  <div class="head"><h3>그림 고르기 <span class="muted">(최대 2개 · 2개면 A → B 관계 그림)</span></h3><button class="btn sm" data-close>닫기</button></div>
+  <div class="body">
+    <div class="row" style="margin-bottom:10px"><b>선택:</b> <span id="pkSel" class="row"></span></div>
+    <div class="gallery" id="pkGrid"></div>
+  </div>
+  <div class="foot"><button class="btn" id="pkClear">선택 지우기</button><button class="btn primary" id="pkOk">확인</button></div>
+</div></div>
+
+<!-- 영상 보기 -->
+<div class="modal" id="viewer"><div class="box" style="width:min(1000px,100%)">
+  <div class="head"><h3 id="vwTitle">미리 보기</h3><button class="btn sm" data-close>닫기</button></div>
+  <div class="body"><video id="vwVideo" controls></video></div>
+</div></div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+const TOKEN = "__TOKEN__";
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+function h(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (k === "class") e.className = v;
+    else if (k === "text") e.textContent = v;
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(c));
+  return e;
+}
+async function api(path, body) {
+  const opt = { headers: { "X-Token": TOKEN } };
+  if (body !== undefined) { opt.method = "POST"; opt.headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
+  const r = await fetch(path, opt);
+  let j = {};
+  try { j = await r.json(); } catch (e) {}
+  if (!r.ok) throw new Error(j.error || ("오류 " + r.status));
+  return j;
+}
+const fileUrl = (p) => "/api/file?t=" + encodeURIComponent(TOKEN) + "&path=" + encodeURIComponent(p);
+const previewUrl = (o) => "/api/preview?" + new URLSearchParams({ t: TOKEN, concepts: (o.concepts || []).join(","), label: o.label || "", logo: o.logo || "", style: o.style || "sticker", small: o.small ? "1" : "", seed: o.seed || 1 });
+const base = (p) => p.split(/[\\/]/).pop();
+let toastT;
+function toast(msg, ms = 2600) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), ms); }
+const store = { get(k, d) { try { const v = localStorage.getItem("autocut." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+                set(k, v) { try { localStorage.setItem("autocut." + k, JSON.stringify(v)); } catch (e) {} } };
+
+// ---------------------------------------------------------------- 탭
+$$("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+function showTab(name) {
+  $$("#tabs button").forEach(x => x.classList.toggle("on", x.dataset.tab === name));
+  $$(".tab").forEach(x => x.classList.toggle("on", x.id === "tab-" + name));
+  if (name === "edit") refreshProjects();
+  if (name === "lib") loadLib();
+}
+$$(".modal").forEach(m => m.addEventListener("click", e => { if (e.target === m || e.target.hasAttribute("data-close")) closeModal(m); }));
+function closeModal(m) { m.classList.remove("on"); $$("video", m).forEach(v => v.pause()); }
+
+// ---------------------------------------------------------------- 상태
+let INFO = null;
+const S = {
+  paths: store.get("paths", []), out_dir: store.get("out_dir", ""),
+  flags: Object.assign({ recursive: false, skip_done: true, fresh: false }, store.get("flags", {})),
+  opts: null, results: store.get("results", []),
+};
+function saveState() { store.set("paths", S.paths); store.set("out_dir", S.out_dir); store.set("flags", S.flags); store.set("opts", S.opts); store.set("results", S.results); }
+
+async function init() {
+  INFO = await api("/api/info");
+  S.opts = Object.assign({}, INFO.defaults, store.get("opts", {}));
+  if (Array.isArray(S.opts.custom_keywords)) S.opts.custom_keywords = S.opts.custom_keywords.join(", ");
+  bindOptions();
+  renderSel();
+  renderResults();
+  if (!INFO.font) toast("한글 폰트를 찾지 못해 일러스트 글자가 안 보일 수 있어요. install.bat을 다시 실행해 보세요.", 6000);
+  pollStatus(true);
+}
+
+// ---------------------------------------------------------------- 옵션 버튼
+function bindOptions() {
+  $$(".tog[data-opt]").forEach(b => {
+    const k = b.dataset.opt; b.classList.toggle("on", !!S.opts[k]);
+    b.onclick = () => { S.opts[k] = !S.opts[k]; b.classList.toggle("on", S.opts[k]); saveState(); };
+  });
+  $$(".tog[data-key]").forEach(b => {
+    const k = b.dataset.key; b.classList.toggle("on", !!S.flags[k]);
+    b.onclick = () => { S.flags[k] = !S.flags[k]; b.classList.toggle("on", S.flags[k]); saveState(); if (k === "recursive") renderSel(); };
+  });
+  $$(".seg[data-opt]").forEach(seg => {
+    const k = seg.dataset.opt;
+    const paint = () => $$("button", seg).forEach(x => x.classList.toggle("on", x.dataset.v === S.opts[k]));
+    $$("button", seg).forEach(x => x.onclick = () => { S.opts[k] = x.dataset.v; paint(); saveState(); });
+    paint();
+  });
+  const rng = (id, lab, fmt) => { const el = $("#" + id); const k = el.dataset.opt; el.value = S.opts[k];
+    const show = () => $("#" + lab).textContent = fmt(+el.value); show();
+    el.oninput = () => { S.opts[k] = +el.value; show(); saveState(); }; };
+  rng("minsil", "minsilV", v => v.toFixed(2)); rng("gap", "gapV", v => v.toFixed(0));
+  $("#kw").value = S.opts.custom_keywords || "";
+  $("#kw").oninput = () => { S.opts.custom_keywords = $("#kw").value; saveState(); };
+  paintOutDir();
+  $("#outDirBtn").onclick = () => openBrowser("dir", S.out_dir);
+  $("#outDirReset").onclick = () => { S.out_dir = ""; paintOutDir(); saveState(); };
+}
+function paintOutDir() { $("#outDirLabel").textContent = S.out_dir || "원본 영상 옆"; $("#outDirLabel").title = S.out_dir; }
+
+// ---------------------------------------------------------------- 선택 목록
+let scanT;
+function renderSel() {
+  const box = $("#selList"); box.innerHTML = "";
+  if (!S.paths.length) { box.append(h("div", { class: "empty", text: "편집할 영상이나 폴더를 추가하세요" })); $("#selCount").textContent = ""; return; }
+  S.paths.forEach((p, i) => box.append(h("div", { class: "it" },
+    h("span", {}, /\.[a-z0-9]{2,4}$/i.test(p) ? "🎞️" : "📁"),
+    h("div", { class: "grow" }, h("div", { class: "name", text: base(p) || p }), h("div", { class: "path", text: p, title: p })),
+    h("button", { class: "btn sm", title: "목록에서 빼기", onclick: () => { S.paths.splice(i, 1); saveState(); renderSel(); } }, "✕"))));
+  clearTimeout(scanT);
+  scanT = setTimeout(async () => {
+    try {
+      const r = await api("/api/scan", { paths: S.paths, recursive: S.flags.recursive, out_dir: S.out_dir });
+      const done = r.items.filter(x => x.done).length;
+      $("#selCount").textContent = `편집할 영상 ${r.items.length}개` + (done ? ` (이미 편집됨 ${done}개)` : "") + (r.missing.length ? ` · 찾을 수 없음 ${r.missing.length}개` : "");
+    } catch (e) { $("#selCount").textContent = e.message; }
+  }, 200);
+}
+$("#addBtn").onclick = () => openBrowser("add", store.get("lastDir", ""));
+$("#clearBtn").onclick = () => { S.paths = []; saveState(); renderSel(); };
+function addPath(p) { if (!S.paths.includes(p)) { S.paths.push(p); saveState(); renderSel(); toast("추가했어요: " + base(p)); } }
+
+// ---------------------------------------------------------------- 폴더 탐색기
+let BR = { mode: "add", path: "", data: null };
+function openBrowser(mode, start) {
+  BR.mode = mode;
+  $("#brTitle").textContent = { add: "영상·폴더 추가", dir: "결과를 저장할 폴더 고르기", video: "일러스트를 고칠 영상 고르기" }[mode];
+  $("#brAddAll").style.display = mode === "add" ? "" : "none";
+  $("#brPickDir").style.display = mode === "dir" ? "" : "none";
+  $("#brNote").textContent = mode === "video" ? "편집한 적 있는 영상(✓)을 고르세요" : "";
+  $("#browser").classList.add("on");
+  go(start || "");
+}
+async function go(path) {
+  try { BR.data = await api("/api/browse?path=" + encodeURIComponent(path)); }
+  catch (e) { toast(e.message); if (!BR.data) BR.data = await api("/api/browse?path="); }
+  const d = BR.data; BR.path = d.path; $("#brPath").value = d.path;
+  if (d.path) store.set("lastDir", d.path);
+  const roots = $("#brRoots"); roots.innerHTML = "";
+  d.roots.forEach(r => roots.append(h("button", { class: "btn sm", onclick: () => go(r.path) }, r.name)));
+  const list = $("#brList"); list.innerHTML = "";
+  if (!d.path) { list.append(h("div", { class: "empty", text: "위에서 드라이브나 폴더를 고르세요" })); return; }
+  d.dirs.forEach(x => list.append(h("div", { class: "it" },
+    h("span", {}, "📁"), h("div", { class: "grow", style: "cursor:pointer", onclick: () => go(x.path) }, h("div", { class: "name", text: x.name })),
+    BR.mode === "add" ? h("button", { class: "btn sm", onclick: () => addPath(x.path) }, "＋ 폴더째 추가") : null)));
+  d.files.forEach(x => list.append(h("div", { class: "it" },
+    h("span", {}, "🎞️"),
+    h("div", { class: "grow" }, h("div", { class: "name", text: x.name }), h("div", { class: "path", text: (x.size / 1048576).toFixed(1) + " MB" })),
+    x.done ? h("span", { class: "badge ok" }, "✓ 편집됨") : null,
+    BR.mode === "add" ? h("button", { class: "btn sm", onclick: () => addPath(x.path) }, "＋ 추가") : null,
+    BR.mode === "video" ? h("button", { class: "btn sm", onclick: () => { closeModal($("#browser")); openProject(x.path, x.output); } }, "고르기") : null)));
+  if (!d.dirs.length && !d.files.length) list.append(h("div", { class: "empty", text: "영상이나 하위 폴더가 없어요" }));
+}
+$("#brUp").onclick = () => go(BR.data && BR.data.parent || "");
+$("#brGo").onclick = () => go($("#brPath").value.trim().replace(/^"|"$/g, ""));
+$("#brPath").onkeydown = e => { if (e.key === "Enter") $("#brGo").click(); };
+$("#brAddAll").onclick = () => { if (BR.path) { addPath(BR.path); closeModal($("#browser")); } };
+$("#brPickDir").onclick = () => { if (BR.path) { S.out_dir = BR.path; paintOutDir(); saveState(); renderSel(); closeModal($("#browser")); } };
+
+// ---------------------------------------------------------------- 실행/진행
+let since = 0, polling = false, lastKind = "";
+$("#startBtn").onclick = async () => {
+  if (!S.paths.length) return toast("먼저 영상이나 폴더를 추가하세요");
+  try {
+    const r = await api("/api/start", { paths: S.paths, recursive: S.flags.recursive, skip_done: S.flags.skip_done, fresh: S.flags.fresh, out_dir: S.out_dir, options: S.opts });
+    toast(`영상 ${r.started}개 편집을 시작했어요`); $("#log").textContent = ""; since = 0; pollStatus();
+  } catch (e) { toast(e.message, 4000); }
+};
+$("#stopBtn").onclick = async () => { await api("/api/stop", {}); toast("지금 단계가 끝나면 멈춰요"); };
+
+async function pollStatus(first) {
+  if (polling) return; polling = true;
+  try {
+    while (true) {
+      const s = await api("/api/status?since=" + since);
+      if (s.logs.length) { const lg = $("#log"); lg.textContent += s.logs.join("\n") + "\n"; lg.scrollTop = lg.scrollHeight; }
+      since = s.next; lastKind = s.kind || lastKind;
+      paintProgress(s);
+      if (!s.running) {
+        if (!first && s.results && s.results.length) onFinished(s);
+        break;
+      }
+      first = false;
+      await new Promise(r => setTimeout(r, 700));
+    }
+  } catch (e) { toast("상태를 가져오지 못했어요: " + e.message); }
+  polling = false;
+}
+function paintProgress(s) {
+  const run = s.running;
+  $("#startBtn").disabled = run; $("#stopBtn").disabled = !run; $("#rerenderBtn").disabled = run;
+  const pct = s.file_n ? ((s.file_i - 1 + s.frac) / s.file_n) : s.frac;
+  const w = (run ? Math.max(2, pct * 100) : (s.stage === "완료" ? 100 : 0)) + "%";
+  $("#pbar").style.width = w;
+  $("#stage").textContent = s.stage;
+  $("#fileInfo").textContent = run && s.file_n ? `[${s.file_i}/${s.file_n}] ${s.file_name}` : "";
+  if (s.kind === "rerender") {
+    $("#rrBarWrap").style.display = run ? "" : "none"; $("#rrBar").style.width = Math.max(2, s.frac * 100) + "%";
+    $("#rrStage").textContent = run ? s.stage : "";
+  }
+}
+function onFinished(s) {
+  const map = new Map(S.results.map(r => [r.input, r]));
+  s.results.forEach(r => map.set(r.input, r));
+  S.results = [...map.values()].slice(-200); saveState(); renderResults();
+  const c = k => s.results.filter(r => r.status === k).length;
+  toast(`끝났어요 · 완료 ${c("완료")} · 건너뜀 ${c("건너뜀")} · 실패 ${c("실패")}`, 4000);
+  if (lastKind === "rerender" && curProj) { openProject(curProj.video, s.results[0] && s.results[0].output); toast("다시 만들었어요. 영상에서 확인해 보세요", 4000); }
+}
+function renderResults() {
+  const tb = $("#resultBody"); tb.innerHTML = "";
+  $("#resultCard").style.display = S.results.length ? "" : "none";
+  S.results.slice().reverse().forEach(r => {
+    const cls = { "완료": "ok", "건너뜀": "", "실패": "bad", "중지": "warn" }[r.status] || "";
+    tb.append(h("tr", {},
+      h("td", { title: r.input }, base(r.input)),
+      h("td", {}, h("span", { class: "badge " + cls, title: r.error || "" }, r.status), r.error ? h("div", { class: "muted", text: r.error }) : null),
+      h("td", {}, r.removed != null && r.removed !== "" ? `−${r.removed}초 (${r.original}→${r.kept})` : ""),
+      h("td", {}, r.illustrations ?? ""), h("td", {}, r.mosaics ?? ""),
+      h("td", { style: "text-align:right;white-space:nowrap" },
+        (r.status === "완료" || r.status === "건너뜀") ? h("button", { class: "btn sm", onclick: () => playFile(r.output) }, "▶ 보기") : null, " ",
+        h("button", { class: "btn sm", onclick: () => api("/api/open", { path: (r.status === "완료" || r.status === "건너뜀") ? r.output : r.input }).catch(e => toast(e.message)) }, "📂 폴더"), " ",
+        (r.status === "완료" || r.status === "건너뜀") ? h("button", { class: "btn sm", onclick: () => { showTab("edit"); openProject(r.input, r.output); } }, "✏️ 일러스트") : null)));
+  });
+}
+function playFile(p) { $("#vwTitle").textContent = base(p); const v = $("#vwVideo"); v.src = fileUrl(p); $("#viewer").classList.add("on"); v.play().catch(() => {}); }
+
+// ---------------------------------------------------------------- 일러스트 편집
+let curProj = null, curItems = [], editStyle = "sticker";
+function refreshProjects() {
+  const sel = $("#projSel"); const cur = curProj && curProj.video; sel.innerHTML = "";
+  const done = S.results.filter(r => r.status === "완료" || r.status === "건너뜀");
+  if (curProj && !done.some(r => r.input === curProj.video)) done.push({ input: curProj.video, output: curProj.output });
+  sel.append(h("option", { value: "" }, done.length ? "편집한 영상 고르기…" : "(아직 편집한 영상 없음)"));
+  done.slice().reverse().forEach(r => sel.append(h("option", { value: r.input, "data-out": r.output, selected: r.input === cur }, base(r.input))));
+  sel.onchange = () => { const o = sel.selectedOptions[0]; if (o && o.value) openProject(o.value, o.dataset.out); };
+}
+$("#projPick").onclick = () => openBrowser("video", store.get("lastDir", ""));
+async function openProject(video, output) {
+  try {
+    const p = await api("/api/project?video=" + encodeURIComponent(video) + "&output=" + encodeURIComponent(output || ""));
+    curProj = p; curItems = p.items.map(x => Object.assign({}, x));
+    editStyle = (p.settings && p.settings.illu_style) || "sticker"; paintEditStyle();
+    $("#editorEmpty").style.display = "none"; $("#editor").style.display = "";
+    $("#projInfo").textContent = p.output ? "편집본: " + base(p.output) : "편집본 파일이 없어요 (저장 후 다시 만들기를 누르세요)";
+    const v = $("#player"); if (p.output) v.src = fileUrl(p.output); else v.removeAttribute("src");
+    const ss = $("#sentSel"); ss.innerHTML = ""; ss.append(h("option", { value: "" }, "문장 골라서 추가…"));
+    p.sentences.forEach((s, i) => ss.append(h("option", { value: i }, `[${s.start.toFixed(1)}s] ${s.text.slice(0, 40)}`)));
+    renderItems(); refreshProjects(); $("#saveInfo").textContent = "";
+  } catch (e) { toast(e.message, 4000); }
+}
+function paintEditStyle() { $$("#editStyle button").forEach(b => b.classList.toggle("on", b.dataset.v === editStyle)); }
+$$("#editStyle button").forEach(b => b.onclick = () => { editStyle = b.dataset.v; paintEditStyle(); renderItems(); });
+
+function renderItems() {
+  const box = $("#items"); box.innerHTML = ""; $("#itemCount").textContent = curItems.length;
+  if (!curItems.length) box.append(h("div", { class: "empty", text: "일러스트가 없어요. 왼쪽에서 추가해 보세요." }));
+  const logos = INFO.logos;
+  curItems.forEach((it, i) => {
+    const img = h("img", { class: "checker", alt: "", src: previewUrl({ concepts: it.concepts, label: it.label, logo: it.logo, style: editStyle, small: 1, seed: i * 7 + 1 }) });
+    const refresh = () => { img.src = previewUrl({ concepts: it.concepts, label: it.label, logo: it.logo, style: editStyle, small: 1, seed: i * 7 + 1 }); dirty(); };
+    const num = (k) => h("input", { type: "number", step: "0.1", min: "0", value: (+it[k]).toFixed(1), oninput: e => { it[k] = +e.target.value; dirty(); } });
+    const logoSel = h("select", { onchange: e => { it.logo = e.target.value || undefined; refresh(); renderItemsSoon(); } },
+      h("option", { value: "" }, logos.length ? "로고 없음 (아이콘 사용)" : "로고 없음"),
+      logos.map(l => h("option", { value: l.name, selected: it.logo === l.name }, logoName(l.name))));
+    box.append(h("div", { class: "item", id: "item-" + i },
+      img,
+      h("div", {},
+        h("div", { class: "row times" }, num("start"), "~", num("end"), "초",
+          h("button", { class: "btn sm", title: "이 장면 재생", onclick: () => seek(it.start) }, "▶"),
+          h("span", { style: "flex:1" }),
+          h("button", { class: "btn sm danger", onclick: () => { curItems.splice(i, 1); renderItems(); dirty(); } }, "삭제")),
+        h("div", { class: "row", style: "margin-top:8px" },
+          it.logo ? h("span", { class: "chip" }, "로고: " + logoName(it.logo))
+                  : (it.concepts || []).map(c => h("span", { class: "chip" }, iconName(c))),
+          it.logo ? null : h("button", { class: "btn sm", onclick: () => pickIcons(it, () => { refresh(); renderItemsSoon(); }) }, "그림 바꾸기"),
+          logoSel),
+        h("div", { class: "row", style: "margin-top:8px" },
+          h("input", { type: "text", value: it.label || "", maxlength: INFO.max_label_chars, placeholder: "키워드 (" + INFO.max_label_chars + "자 이하, 비워도 됨)", style: "width:200px",
+                       oninput: e => { it.label = e.target.value; clearTimeout(it._t); it._t = setTimeout(refresh, 400); } })),
+        it.text ? h("div", { class: "muted", style: "margin-top:6px", text: "“" + it.text.slice(0, 80) + "”" }) : null)));
+  });
+}
+let riT; function renderItemsSoon() { clearTimeout(riT); riT = setTimeout(renderItems, 50); }
+function logoName(n) { const l = INFO.logos.find(x => x.name === n); return l ? l.keywords[0] : n.split(",")[0]; }
+function iconName(k) { const x = INFO.icons.find(i => i.key === k); return x ? (x.label || x.keywords[0] || k) + " (" + k + ")" : k; }
+function dirty() { $("#saveInfo").textContent = "저장 안 됨"; }
+function seek(t) { const v = $("#player"); if (!v.src) return toast("편집본 영상이 없어요"); v.currentTime = Math.max(0, t - 0.3); v.play().catch(() => {}); }
+$("#player").ontimeupdate = () => {
+  const t = $("#player").currentTime; $("#curT").textContent = t.toFixed(1);
+  curItems.forEach((it, i) => { const el = $("#item-" + i); if (el) el.classList.toggle("cur", t >= it.start && t <= it.end); });
+};
+function newItem(start, end, text) {
+  curItems.push({ start: +start.toFixed(2), end: +end.toFixed(2), concepts: ["idea"], label: "", text: text || "", subject_en: "" });
+  curItems.sort((a, b) => a.start - b.start); renderItems(); dirty();
+  const i = curItems.findIndex(x => x.start === +start.toFixed(2)); const el = $("#item-" + i); if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+$("#addHere").onclick = () => { if (!curProj) return; const t = $("#player").currentTime || 0; newItem(t, t + 3.5); };
+$("#sentSel").onchange = e => { const s = curProj.sentences[+e.target.value]; if (s) newItem(s.start, Math.min(s.start + 6, Math.max(s.end, s.start + 2.6)), s.text); e.target.value = ""; };
+function payload() { return curItems.map(({ _t, ...x }) => x); }
+$("#saveBtn").onclick = async () => {
+  try { const r = await api("/api/project/save", { video: curProj.video, items: payload() }); $("#saveInfo").textContent = `저장했어요 (${r.saved}개)`; return true; }
+  catch (e) { toast(e.message, 4000); return false; }
+};
+$("#rerenderBtn").onclick = async () => {
+  if (!curProj) return;
+  if (!(await $("#saveBtn").onclick())) return;
+  const options = Object.assign({}, curProj.settings || {}, { illu_style: editStyle });
+  try {
+    await api("/api/rerender", { video: curProj.video, output: curProj.output || "", options });
+    $("#log").textContent = ""; since = 0; $("#saveInfo").textContent = "다시 만드는 중…"; pollStatus();
+  } catch (e) { toast(e.message, 4000); }
+};
+
+// ---------------------------------------------------------------- 아이콘 고르기
+let pk = { item: null, sel: [], done: null };
+function pickIcons(item, done) {
+  pk = { item, sel: (item.concepts || []).slice(0, 2), done };
+  const g = $("#pkGrid"); g.innerHTML = "";
+  INFO.icons.forEach(ic => g.append(h("div", { class: "tile", "data-k": ic.key, title: ic.keywords.join(", "), onclick: () => togglePick(ic.key) },
+    h("img", { class: "checker", loading: "lazy", src: previewUrl({ concepts: [ic.key], style: editStyle, small: 1 }) }),
+    h("div", { class: "cap" }, ic.label || ic.key, h("small", {}, ic.keywords.slice(0, 4).join(" · "))))));
+  paintPick(); $("#picker").classList.add("on");
+}
+function togglePick(k) { const i = pk.sel.indexOf(k); if (i >= 0) pk.sel.splice(i, 1); else { pk.sel.push(k); if (pk.sel.length > 2) pk.sel.shift(); } paintPick(); }
+function paintPick() {
+  $$("#pkGrid .tile").forEach(t => t.classList.toggle("on", pk.sel.includes(t.dataset.k)));
+  const s = $("#pkSel"); s.innerHTML = ""; if (!pk.sel.length) s.append(h("span", { class: "muted" }, "없음"));
+  pk.sel.forEach((k, i) => { if (i) s.append(" → "); s.append(h("span", { class: "chip" }, iconName(k))); });
+}
+$("#pkClear").onclick = () => { pk.sel = []; paintPick(); };
+$("#pkOk").onclick = () => { pk.item.concepts = pk.sel.length ? pk.sel.slice() : ["idea"]; closeModal($("#picker")); pk.done && pk.done(); };
+
+// ---------------------------------------------------------------- 아이콘·로고 라이브러리
+let libStyle = "sticker";
+$$("#libStyle button").forEach(b => b.onclick = () => { libStyle = b.dataset.v; $$("#libStyle button").forEach(x => x.classList.toggle("on", x === b)); loadLib(); });
+async function loadLib() {
+  INFO = await api("/api/info");
+  $("#logoDir").textContent = INFO.logo_dir; $("#iconCount").textContent = INFO.icons.length; $("#logoCount").textContent = INFO.logos.length;
+  const ig = $("#iconGrid"); ig.innerHTML = "";
+  INFO.icons.forEach(ic => ig.append(h("div", { class: "tile", title: "키워드: " + ic.keywords.join(", ") },
+    h("img", { class: "checker", loading: "lazy", src: previewUrl({ concepts: [ic.key], label: ic.label, style: libStyle, small: 1 }) }),
+    h("div", { class: "cap" }, h("b", {}, ic.key), h("small", {}, ic.keywords.slice(0, 5).join(" · "))))));
+  const lg = $("#logoGrid"); lg.innerHTML = "";
+  if (!INFO.logos.length) lg.append(h("div", { class: "empty", style: "grid-column:1/-1", text: "아직 로고가 없어요. 위 버튼으로 올려 보세요." }));
+  INFO.logos.forEach(l => lg.append(h("div", { class: "tile", style: "cursor:default" },
+    h("img", { class: "checker", src: previewUrl({ logo: l.name, style: libStyle, small: 1 }) }),
+    h("div", { class: "cap" }, h("b", {}, l.keywords[0]), h("small", {}, l.keywords.length > 1 ? "별칭: " + l.keywords.slice(1).join(", ") : "별칭 없음"),
+      h("button", { class: "btn sm danger", style: "margin-top:6px", onclick: async () => {
+        if (!confirm(`'${l.name}' 로고를 지울까요?`)) return;
+        try { await api("/api/logos/delete", { name: l.name }); loadLib(); } catch (e) { toast(e.message); } } }, "삭제")))));
+}
+$("#logoFile").onchange = async e => {
+  for (const f of e.target.files) {
+    let name = f.name.replace(/\.[^.]+$/, "");
+    name = prompt("로고 이름 (대본에서 이 말이 나오면 표시돼요. 쉼표로 별칭 추가)", name);
+    if (!name) continue;
+    const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+    try { await api("/api/logos", { name, data }); toast("로고를 추가했어요: " + name); } catch (err) { toast(err.message, 4000); }
+  }
+  e.target.value = ""; loadLib();
+};
+
+// ---------------------------------------------------------------- 종료
+$("#quit").onclick = async () => {
+  if (!confirm("오토컷 스튜디오를 끌까요? 편집 중인 작업은 멈춰요.")) return;
+  try { await api("/api/quit", {}); } catch (e) {}
+  document.body.innerHTML = '<main><div class="card empty">프로그램을 껐어요. 이 탭을 닫아도 돼요. 다시 쓰려면 run.bat을 실행하세요.</div></main>';
+};
+
+init().catch(e => toast("시작하지 못했어요: " + e.message, 8000));
+</script>
+</body>
+</html>

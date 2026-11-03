@@ -10,7 +10,7 @@ import numpy as np
 from . import media
 from .config import Config
 from .cutter import compute_cuts, TimeMap, build_audio_wav
-from .illustrate import render_card, find_font, SDEngine
+from .illustrate import render_overlay, find_font, SDEngine, load_logo
 from . import planner as planner_mod
 from . import pii as pii_mod
 
@@ -223,19 +223,25 @@ def run(input_path, output_path=None, cfg=None, log=None, reuse=True, transcript
             card_h = int(H * 0.9); card_w = int(card_h / 0.75)
         cdir = os.path.join(work, "cards"); os.makedirs(cdir, exist_ok=True)
         for i, it in enumerate(items):
-            sd_img = None
-            if sd is not None:
-                subj = it.get("subject_en") or " and ".join(it["concepts"])
+            sd_img = logo = None
+            if it.get("logo"):
+                logo = load_logo(it["logo"], cfg.logo_dir or None)
+                if logo is None:
+                    log(f"  로고 '{it['logo']}'를 assets/logos에서 찾지 못함 → 아이콘으로 대체")
+            if sd is not None and logo is None:
+                subj = it.get("subject_en") or " and ".join(it.get("concepts") or ["idea"])
                 try:
                     sd_img = sd.generate(subj, seed=i)
                 except Exception as e:
                     log(f"  이미지 생성 실패({e}) → 벡터 사용")
-            card = render_card(it["concepts"], it.get("label", ""), seed=i * 7 + 1, size=(card_w, card_h), font=font, sd_image=sd_img)
+            card = render_overlay(it.get("concepts") or [], it.get("label", ""), seed=i * 7 + 1, size=(card_w, card_h),
+                                  font=font, sd_image=sd_img, logo=logo, style=cfg.illu_style)
             card.save(os.path.join(cdir, f"{i:03d}.png"))
             arr = np.array(card)
             bgra = arr[:, :, [2, 1, 0, 3]].copy()
             overlays.append(Overlay(it, bgra, layout))
-            log(f"  [{it['start']:6.1f}s] {'+'.join(it['concepts'])} '{it.get('label', '')}' ← {it['text'][:30]}")
+            what = f"로고:{it['logo']}" if it.get("logo") else "+".join(it.get("concepts") or ["idea"])
+            log(f"  [{it['start']:6.1f}s] {what} '{it.get('label', '')}' ← {it.get('text', '')[:30]}")
         log(f"  일러스트 {len(overlays)}개")
     check_stop()
 

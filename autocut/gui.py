@@ -58,6 +58,9 @@ class App(tk.Tk):
         ttk.Label(adv, text="일러스트 위치").grid(row=0, column=2, sticky="w", padx=8)
         self.layout = ttk.Combobox(adv, values=["auto", "left", "right", "full"], width=10, state="readonly")
         self.layout.set(self.cfg.illu_layout); self.layout.grid(row=0, column=3, sticky="w")
+        ttk.Label(adv, text="일러스트 모양").grid(row=0, column=4, sticky="w", padx=8)
+        self.style = ttk.Combobox(adv, values=["sticker", "card"], width=8, state="readonly")
+        self.style.set(self.cfg.illu_style); self.style.grid(row=0, column=5, sticky="w")
         ttk.Label(adv, text="컷 강도 (쉼 허용 초)").grid(row=1, column=0, sticky="w", padx=8)
         self.minsil = tk.DoubleVar(value=self.cfg.min_silence)
         ttk.Spinbox(adv, from_=0.3, to=2.0, increment=0.05, textvariable=self.minsil, width=8).grid(row=1, column=1, sticky="w")
@@ -118,6 +121,7 @@ class App(tk.Tk):
             setattr(c, k, var.get())
         c.whisper_model = self.model.get()
         c.illu_layout = self.layout.get()
+        c.illu_style = self.style.get()
         c.min_silence = float(self.minsil.get())
         c.illu_min_gap = float(self.gap.get())
         c.custom_keywords = [w.strip() for w in self.kw.get().split(",") if w.strip()]

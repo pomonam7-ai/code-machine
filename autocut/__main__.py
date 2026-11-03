@@ -1,12 +1,15 @@
 """명령줄 실행:  python -m autocut 영상.mp4 [옵션]
 폴더를 주면 안의 영상을 모두 일괄 편집합니다:  python -m autocut 영상폴더 [-r] [--out-dir 결과폴더]
-옵션 없이 실행하면 GUI가 열립니다."""
+옵션 없이 실행하면 웹앱(브라우저 화면)이 열립니다.  --gui: 예전 창 화면,  --web [--port N]: 웹앱"""
 import argparse
 import sys
 
 
 def main():
-    if len(sys.argv) == 1:
+    if len(sys.argv) == 1 or sys.argv[1] == "--web":
+        from .web import main as web_main
+        return web_main(sys.argv[2:])
+    if sys.argv[1] == "--gui":
         from .gui import main as gui_main
         return gui_main()
     from .config import Config
@@ -27,6 +30,8 @@ def main():
     ap.add_argument("--no-illu", action="store_true", help="일러스트 끄기")
     ap.add_argument("--no-mosaic", action="store_true", help="모자이크 끄기")
     ap.add_argument("--layout", choices=["auto", "left", "right", "full"])
+    ap.add_argument("--style", choices=["sticker", "card"], help="일러스트 모양: sticker(투명 배경, 기본) | card(종이 카드)")
+    ap.add_argument("--no-logo", action="store_true", help="assets/logos 로고 자동 표시 끄기")
     ap.add_argument("--keyword", action="append", default=[], help="추가로 가릴 단어 (여러 번 사용 가능)")
     ap.add_argument("--transcript", help="직접 만든 대본 JSON 사용")
     ap.add_argument("--fresh", action="store_true", help="이전 작업 결과를 재사용하지 않음")
@@ -40,6 +45,8 @@ def main():
     if a.no_illu: cfg.add_illustrations = False
     if a.no_mosaic: cfg.mosaic_pii = False
     if a.layout: cfg.illu_layout = a.layout
+    if a.style: cfg.illu_style = a.style
+    if a.no_logo: cfg.use_logos = False
     cfg.custom_keywords += a.keyword
 
     def prog(stage, f):

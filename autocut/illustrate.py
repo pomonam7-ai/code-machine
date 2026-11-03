@@ -487,12 +487,136 @@ def find_font(cfg_path="", hand=True):
     return None
 
 
+# ---------------------------------------------------------------- 로고 라이브러리
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOGO_DIR = os.path.join(ROOT, "assets", "logos")
+LOGO_EXTS = (".png", ".webp", ".jpg", ".jpeg")
+
+
+def list_logos(logo_dir=None):
+    """assets/logos 안의 이미지 → {이름: {"path", "keywords"}}.
+    파일 이름이 곧 이름이자 키워드입니다. 쉼표로 별칭을 붙일 수 있어요. 예: '유튜브,youtube.png'"""
+    d = logo_dir or LOGO_DIR
+    out = {}
+    if not os.path.isdir(d):
+        return out
+    for f in sorted(os.listdir(d)):
+        stem, ext = os.path.splitext(f)
+        if ext.lower() not in LOGO_EXTS or stem.startswith("."):
+            continue
+        kws = [k.strip() for k in stem.split(",") if k.strip()]
+        if kws:
+            out[stem] = {"path": os.path.join(d, f), "keywords": kws}
+    return out
+
+
+def load_logo(name, logo_dir=None):
+    info = list_logos(logo_dir).get(name)
+    if not info:
+        return None
+    return remove_background(Image.open(info["path"]))
+
+
+def remove_background(img, tol=30):
+    """투명 배경으로 만듦. 이미 투명한 부분이 있으면 그대로 두고,
+    아니면 테두리와 이어진 단색 배경(흰색 등)만 지웁니다. 안쪽의 같은 색은 남깁니다."""
+    img = img.convert("RGBA")
+    a = np.array(img)
+    alpha = a[:, :, 3]
+    if (alpha < 250).mean() > 0.01:
+        return img
+    import cv2
+    rgb = a[:, :, :3].astype(np.int16)
+    border = np.concatenate([rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]])
+    bg = np.median(border, axis=0)
+    near = (np.abs(rgb - bg).max(axis=2) <= tol).astype(np.uint8)
+    n, lab = cv2.connectedComponents(near, connectivity=4)
+    edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
+    bgmask = np.isin(lab, list(edge)) & (near > 0)
+    if bgmask.mean() < 0.02:          # 배경이라 할 만한 게 없음 (사진 등) → 그대로
+        return img
+    keep = (~bgmask).astype(np.uint8) * 255
+    keep = cv2.GaussianBlur(keep, (3, 3), 0)  # 가장자리 계단 현상 완화
+    a[:, :, 3] = np.minimum(alpha, keep)
+    return Image.fromarray(a, "RGBA")
+
+
+def _fit(im, box_w, box_h):
+    """비율 유지하며 상자 안에 맞춤 (여백 없이 내용 기준으로 자름)."""
+    bb = im.getbbox()
+    if bb:
+        im = im.crop(bb)
+    r = min(box_w / im.width, box_h / im.height)
+    return im.resize((max(1, int(im.width * r)), max(1, int(im.height * r))), Image.LANCZOS)
+
+
 # ---------------------------------------------------------------- 카드 합성
 def _mix(a, b, t):
     return tuple(int(a[i] * (1 - t) + b[i] * t) for i in range(3)) + (255,)
 
 
-def render_card(concepts, label="", seed=0, size=(960, 720), font=None, sd_image=None):
+def render_overlay(concepts, label="", seed=0, size=(960, 720), font=None, sd_image=None, logo=None, style="sticker"):
+    """style: sticker(투명 배경 + 흰 테두리) | card(종이 카드)"""
+    if style == "card":
+        return render_card(concepts, label, seed, size, font, sd_image, logo)
+    return render_sticker(concepts, label, seed, size, font, sd_image, logo)
+
+
+def render_sticker(concepts, label="", seed=0, size=(960, 720), font=None, sd_image=None, logo=None):
+    """투명 배경 스티커: 그림과 키워드만 남기고, 어떤 화면 위에서도 보이도록 흰 테두리 + 옅은 그림자."""
+    W, H = size
+    k = W / 960.0
+    big = (W * SS, H * SS)
+    layer = Image.new("RGBA", big, (0, 0, 0, 0))
+    pen = Pen(layer, seed, width=7 * k)
+    rng = random.Random(seed)
+    edge = 16 * k                      # 흰 테두리 두께
+    m = 36 * k                         # 테두리+그림자가 잘리지 않을 여백
+    has_label = bool(label) and font
+    cy = H / 2 - (50 * k if has_label else 0)
+    area_w, area_h = W - 2 * m - 2 * edge, (H - 2 * m - 2 * edge) - (150 * k if has_label else 0)
+
+    pic = None
+    if logo is not None:
+        pic = remove_background(logo)
+    elif sd_image is not None:
+        pic = remove_background(sd_image)
+    if pic is not None:
+        pic = _fit(pic, int(area_w * 0.8 * SS), int(area_h * SS))
+        layer.alpha_composite(pic, (int(W / 2 * SS - pic.width / 2), int(cy * SS - pic.height / 2)))
+    else:
+        concepts = [c for c in concepts if c in ICONS][:2] or ["idea"]
+        if len(concepts) == 1:
+            ICONS[concepts[0]][0](pen.at(W / 2, cy, (235 if has_label else 280) * k), font)
+        else:
+            ICONS[concepts[0]][0](pen.at(W * 0.27, cy, 170 * k), font)
+            ICONS[concepts[1]][0](pen.at(W * 0.73, cy, 170 * k), font)
+            pen.at(W / 2, cy, 70 * k).arrow(-0.6, 0.0, 0.6, 0.0, 1.3, 0.3)
+        for sx in (rng.uniform(110, 150) * k, W - rng.uniform(110, 150) * k):
+            pen.at(sx, rng.uniform(70, 110) * k, 1).sparkle(0, 0, 13 * k)
+    if has_label:
+        fsize = (92 if len(label) <= 4 else 72) * k
+        f = ImageFont.truetype(font, int(fsize * SS))
+        pen.d.text((W / 2 * SS, (H - m - edge - 70 * k) * SS), label, font=f, fill=INK, anchor="mm")
+
+    # 흰 테두리(스티커 가장자리): 알파를 넓혀 흰색으로 채움
+    a = layer.getchannel("A")
+    r = max(1, int(edge * SS))
+    grown = a.point(lambda v: 255 if v > 20 else 0).filter(ImageFilter.GaussianBlur(r * 0.55))
+    grown = grown.point(lambda v: 255 if v > 18 else int(v * 255 / 18))
+    white = Image.new("RGBA", big, (255, 255, 255, 0))
+    white.putalpha(grown)
+    # 옅은 그림자
+    sh = Image.new("RGBA", big, (0, 0, 0, 0))
+    sh.putalpha(grown.point(lambda v: int(v * 0.32)).filter(ImageFilter.GaussianBlur(9 * k * SS)))
+    out = Image.new("RGBA", big, (0, 0, 0, 0))
+    out.alpha_composite(sh, (int(6 * k * SS), int(10 * k * SS)))
+    out.alpha_composite(white)
+    out.alpha_composite(layer)
+    return out.resize((W, H), Image.LANCZOS)
+
+
+def render_card(concepts, label="", seed=0, size=(960, 720), font=None, sd_image=None, logo=None):
     W, H = size
     k = W / 960.0
     img = Image.new("RGBA", (W * SS, H * SS), (0, 0, 0, 0))
@@ -516,7 +640,10 @@ def render_card(concepts, label="", seed=0, size=(960, 720), font=None, sd_image
 
     has_label = bool(label)
     cy = H / 2 - (45 * k if has_label else 0)
-    if sd_image is not None:
+    if logo is not None:
+        pic = _fit(remove_background(logo), int((W - 2 * m) * 0.7 * SS), int((H - 2 * m) * (0.55 if has_label else 0.7) * SS))
+        img.alpha_composite(pic, (int(W / 2 * SS - pic.width / 2), int(cy * SS - pic.height / 2)))
+    elif sd_image is not None:
         side = int(min(W, H) * (0.66 if has_label else 0.8))
         im = sd_image.convert("RGBA").resize((side * SS, side * SS), Image.LANCZOS)
         mask = Image.new("L", im.size, 0)

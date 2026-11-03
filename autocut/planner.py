@@ -5,7 +5,7 @@ import json
 import re
 import urllib.request
 
-from .illustrate import ICONS
+from .illustrate import ICONS, list_logos
 
 # 설명/개념 전달 신호어 → 일러스트가 이해에 도움 되는 문장
 CUES = ["즉", "예를 들어", "예를 들면", "예컨대", "왜냐하면", "그래서", "핵심", "중요한", "정리하면", "요약하면",
@@ -82,7 +82,23 @@ def _pick(cands, total, cfg):
     return picked
 
 
-def plan_rules(sents, total, cfg):
+def logo_candidates(sents, cfg):
+    """대본에 로고 이름(또는 별칭)이 나오면 그 문장에 로고를 띄울 후보로 추가. 직접 언급이라 점수를 높게 줌."""
+    if not getattr(cfg, "use_logos", True):
+        return []
+    logos = list_logos(cfg.logo_dir or None)
+    cands = []
+    for s in sents:
+        low = s["text"].lower()
+        for name, info in logos.items():
+            if any(k.lower() in low for k in info["keywords"]):
+                cands.append(dict(start=s["start"], end=s["end"], score=6.0, concepts=[], logo=name,
+                                  label="", text=s["text"], subject_en=""))
+                break
+    return cands
+
+
+def plan_rules(sents, total, cfg, extra=()):
     cands = []
     for i, s in enumerate(sents):
         m = _match(s["text"])
@@ -99,7 +115,7 @@ def plan_rules(sents, total, cfg):
             label = f"{top[0][2]}→{top[1][2]}"
         cands.append(dict(start=s["start"], end=s["end"], score=score, concepts=concepts,
                           label=label[: cfg.max_label_chars], text=s["text"], subject_en=""))
-    return _pick(cands, total, cfg)
+    return _pick(cands + list(extra), total, cfg)
 
 
 def ollama_available(cfg):
@@ -112,7 +128,7 @@ def ollama_available(cfg):
         return False
 
 
-def plan_ollama(sents, total, cfg, log):
+def plan_ollama(sents, total, cfg, log, extra=()):
     concept_desc = ", ".join(f"{k}({v[1] or v[2][0]})" for k, v in ICONS.items())
     lines = "\n".join(f"{i}. [{s['start']:.0f}s] {s['text']}" for i, s in enumerate(sents))
     max_n = max(1, int(total / cfg.illu_min_gap))
@@ -150,19 +166,22 @@ JSON으로만 답하세요: {{"items":[{{"idx":0,"concepts":["money"],"label":"�
         cands.append(dict(start=s["start"], end=s["end"], score=10 - len(cands) * 0.01, concepts=concepts,
                           label=label, text=s["text"], subject_en=str(it.get("subject_en") or "")))
     log(f"  로컬 LLM이 {len(cands)}개 장면을 제안했어요")
-    return _pick(cands, total, cfg)
+    return _pick(cands + list(extra), total, cfg)
 
 
 def plan(segments, total, cfg, log):
     sents = sentences_from(segments)
+    logos = logo_candidates(sents, cfg)
+    if logos:
+        log(f"  로고 언급 {len(logos)}곳 발견")
     use = cfg.planner
     if use == "auto":
         use = "ollama" if ollama_available(cfg) else "rules"
     if use == "ollama":
         try:
             log(f"  장면 선택: 로컬 LLM ({cfg.ollama_model})")
-            return plan_ollama(sents, total, cfg, log)
+            return plan_ollama(sents, total, cfg, log, logos)
         except Exception as e:
             log(f"  로컬 LLM 실패({e}) → 키워드 규칙으로 대체")
     log("  장면 선택: 키워드 규칙")
-    return plan_rules(sents, total, cfg)
+    return plan_rules(sents, total, cfg, logos)
