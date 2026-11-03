@@ -207,6 +207,8 @@ def run(input_path, output_path=None, cfg=None, log=None, reuse=True, transcript
             items = planner_mod.plan(out_segments, tm.total, cfg, log)
             _save(ppath, {"keep_hash": khash, "items": items})
         font = find_font(cfg.font_path)
+        if not font:
+            log("  ※ 한글 글꼴을 찾지 못해 일러스트에 키워드 글자를 넣지 않습니다 (assets/fonts에 .ttf를 넣으면 해결)")
         sd = None
         if cfg.illustration_engine in ("sd", "auto"):
             try:

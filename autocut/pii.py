@@ -30,9 +30,25 @@ def _digit_fix(t):
     return t
 
 
+_DATE = re.compile(r"(19|20)\d{2}-(0?[1-9]|1[0-2])-(0?[1-9]|[12]\d|3[01])")
+
+
+def _valid_account(t):
+    """계좌번호 후보 검증: 숫자 10~14자리이고 날짜(2024-01-15 등)가 아닌 것만."""
+    for m in _COMPILED["계좌번호"].finditer(t):
+        g = m.group(0)
+        if _DATE.fullmatch(g):
+            continue
+        if 10 <= sum(c.isdigit() for c in g) <= 14:
+            return True
+    return False
+
+
 def find_pii(text, custom=()):
     t = _digit_fix(text)
     hits = [k for k, rx in _COMPILED.items() if rx.search(t)]
+    if "계좌번호" in hits and not _valid_account(t):
+        hits.remove("계좌번호")
     if ("휴대폰번호" in hits or "전화번호" in hits) and "계좌번호" in hits:
         hits.remove("계좌번호")
     for kw in custom:

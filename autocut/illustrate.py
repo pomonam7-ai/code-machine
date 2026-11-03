@@ -479,8 +479,11 @@ def find_font(cfg_path="", hand=True):
     if os.path.isdir(fd):
         cands += [os.path.join(fd, f) for f in sorted(os.listdir(fd)) if f.lower().endswith((".ttf", ".otf", ".ttc"))]
     cands += [r"C:\Windows\Fonts\malgunbd.ttf", r"C:\Windows\Fonts\malgun.ttf",
+              r"C:\Windows\Fonts\NanumGothicBold.ttf", r"C:\Windows\Fonts\gulim.ttc",
               "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc", "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-              "/System/Library/Fonts/AppleSDGothicNeo.ttc"]
+              "/usr/share/fonts/noto-cjk/NotoSansCJK-Bold.ttc", "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Bold.ttc",
+              "/usr/share/fonts/truetype/nanum/NanumSquareRoundB.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf",
+              "/System/Library/Fonts/AppleSDGothicNeo.ttc", "/Library/Fonts/AppleGothic.ttf"]
     for c in cands:
         if c and os.path.exists(c):
             return c
