@@ -1,0 +1,37 @@
+# 비밀값
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+venv/
+.venv/
+env/
+
+# 작업 산출물 / 대용량 파일
+*_autocut_work/
+*_편집본.mp4
+*_편집본.srt
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.m4v
+*.webm
+*.wav
+
+# 다운로드되는 폰트/모델
+assets/fonts/*.ttf
+assets/fonts/*.otf
+models/
+
+# OS / 에디터
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
