@@ -125,20 +125,25 @@ class Overlay:
             dim = min(1.0, tin / 0.3) * k_out * 0.55
             frame[:] = (frame.astype(np.float32) * (1 - dim) + np.array([240, 245, 250]) * dim).astype(np.uint8)
         if self.side is None:
-            self.side = self.layout if self.layout in ("left", "right", "full") else faces.choose(frame)
+            if self.layout in ("left", "right", "full"):
+                self.side = self.layout
+            else:
+                self.side = "top" if H > W * 1.2 else faces.choose(frame)
         cw = self.card.shape[1]
         sw = max(8, int(cw * scale))
         sh = max(8, int(self.card.shape[0] * scale))
         img = self.card if sw == cw else cv2.resize(self.card, (sw, sh), interpolation=cv2.INTER_AREA)
         bob = int(math.sin(tin * 2.2) * H * 0.004)
         margin = int(W * 0.03)
-        if self.side == "full":
+        if self.side == "top":
+            cx = W // 2
+        elif self.side == "full":
             cx = W // 2
         elif self.side == "left":
             cx = margin + cw // 2
         else:
             cx = W - margin - cw // 2
-        cy = H // 2 + bob
+        cy = (int(H * 0.04) + self.card.shape[0] // 2 if self.side == "top" else H // 2) + bob
         _blend(frame, img, cx - sw // 2, cy - sh // 2, alpha)
 
 
@@ -216,7 +221,9 @@ def run(input_path, output_path=None, cfg=None, log=None, reuse=True, transcript
                 if cfg.illustration_engine == "sd":
                     log(f"  로컬 이미지 모델 사용 불가({e}) → 벡터 일러스트로 대체")
         layout = cfg.illu_layout
-        card_w = int(W * (0.62 if layout == "full" else cfg.illu_scale))
+        # 세로 영상은 얼굴이 화면 폭 대부분을 차지하므로 머리 위 빈 공간에 크게 띄움
+        portrait = H > W * 1.2
+        card_w = int(W * (0.62 if layout == "full" or (portrait and layout == "auto") else cfg.illu_scale))
         card_w -= card_w % 2
         card_h = int(card_w * 0.75)
         if card_h > H * 0.9:

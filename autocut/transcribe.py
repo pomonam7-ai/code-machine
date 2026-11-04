@@ -40,8 +40,12 @@ def transcribe(wav_path, cfg, log=print):
     log(f"  음성 인식 모델: {model_name} ({device}, {compute}) - 첫 실행은 모델 다운로드로 오래 걸릴 수 있어요")
     def _run(dev, comp):
         model = WhisperModel(model_name, device=dev, compute_type=comp)
+        # 오디오는 ffmpeg로 직접 읽어 넘김. faster-whisper가 파일을 열 때 쓰는 PyAV는
+        # 버전에 따라 호환이 깨지므로(av 19 + faster-whisper 1.2.1) 거치지 않음.
+        from .media import load_audio
+        audio = load_audio(wav_path, sr=16000, channels=1)[:, 0]
         seg_iter, info = model.transcribe(
-            wav_path, language=cfg.language, word_timestamps=True, vad_filter=False,
+            audio, language=cfg.language, word_timestamps=True, vad_filter=False,
             initial_prompt=FILLER_PROMPT, condition_on_previous_text=False, beam_size=5,
         )
         dur = max(1.0, info.duration)

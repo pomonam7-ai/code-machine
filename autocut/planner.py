@@ -25,6 +25,8 @@ def _strip_particle(tok):
 
 def _match(text):
     """문장 → [(concept, score, label)]"""
+    # '왜냐하면'은 이유를 대는 말이지 질문이 아니므로 '왜'로 잡히지 않게 뺌
+    text = re.sub(r"왜냐(하)?면", " ", text)
     res = []
     toks = text.split()
     for key, (_, default_label, stems) in ICONS.items():
@@ -111,7 +113,8 @@ def plan_rules(sents, total, cfg, extra=()):
         top.sort(key=lambda x: _first_pos(s["text"], x[0]))
         concepts = [x[0] for x in top]
         label = m[0][2]
-        if len(top) == 2 and top[0][2] and top[1][2] and len(top[0][2]) + len(top[1][2]) + 1 <= cfg.max_label_chars:
+        if len(top) == 2 and top[0][2] and top[1][2] and top[0][2] != top[1][2] \
+                and len(top[0][2]) + len(top[1][2]) + 1 <= cfg.max_label_chars:
             label = f"{top[0][2]}→{top[1][2]}"
         cands.append(dict(start=s["start"], end=s["end"], score=score, concepts=concepts,
                           label=label[: cfg.max_label_chars], text=s["text"], subject_en=""))
