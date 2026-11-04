@@ -1,0 +1,4 @@
+interface:
+  display_name: "토스 흐름 설계"
+  short_description: "토스에서 관찰한 UX 패턴을 업종별 모바일 앱과 웹 흐름으로 설계"
+  default_prompt: "$toss-flow-design을 사용해 내 서비스의 핵심 사용자 흐름을 설계하고 모바일 앱·웹 화면에 적용해줘."
